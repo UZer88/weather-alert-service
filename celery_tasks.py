@@ -3,8 +3,8 @@ import logging
 import sys
 import requests
 from celery import shared_task
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from app.config import DATABASE_URL, OPENWEATHER_API_KEY
 from notifiers.email import send_weather_alert
 
@@ -18,9 +18,10 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Создаём синхронный движок для Celery
-sync_engine = create_engine(DATABASE_URL.replace("+asyncpg", ""))
-SessionLocal = sessionmaker(bind=sync_engine)
+# Создаём синхронный движок для Celery (заменяем asyncpg на psycopg2)
+SYNC_DATABASE_URL = DATABASE_URL.replace("+asyncpg", "")
+engine = create_engine(SYNC_DATABASE_URL)
+SessionLocal = sessionmaker(bind=engine)
 
 
 @shared_task
@@ -35,8 +36,7 @@ def check_all_weather():
         logger.info(f"Найдено активных подписок: {len(subscriptions)}")
 
         for sub in subscriptions:
-            # Прямой вызов, без .delay()
-            check_weather_for_subscription(sub.id)
+            check_weather_for_subscription.delay(sub.id)
 
     except Exception as e:
         logger.error(f"Ошибка при получении списка подписок: {e}", exc_info=True)

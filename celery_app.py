@@ -6,7 +6,8 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
 celery_app = Celery(
     'weather_alert',
     broker=REDIS_URL,
-    backend=REDIS_URL
+    backend=REDIS_URL,
+    include=['celery_tasks']  # ← ЭТО САМОЕ ВАЖНОЕ
 )
 
 celery_app.conf.update(
