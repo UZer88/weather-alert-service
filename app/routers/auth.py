@@ -23,7 +23,11 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         )
 
     hashed_password = get_password_hash(user_data.password)
-    new_user = User(email=user_data.email, hashed_password=hashed_password)
+    new_user = User(
+        email=user_data.email,
+        hashed_password=hashed_password,
+        telegram_chat_id=user_data.telegram_chat_id
+    )
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)

@@ -7,11 +7,13 @@ from typing import Optional
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
+    telegram_chat_id: Optional[str] = None
 
 
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
+    telegram_chat_id: Optional[str] = None
     created_at: datetime
 
     class Config:

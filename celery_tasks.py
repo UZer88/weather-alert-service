@@ -1,12 +1,14 @@
 import os
 import logging
 import sys
+import asyncio
 import requests
 from celery import shared_task
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.config import DATABASE_URL, OPENWEATHER_API_KEY
 from notifiers.email import send_weather_alert
+from notifiers.telegram import send_telegram_alert
 
 # Настройка логирования
 logging.basicConfig(
@@ -93,15 +95,32 @@ def check_weather_for_subscription(subscription_id: int):
             temp_diff = abs(new_temp - sub.last_temp)
             if temp_diff >= 1.0:
                 user = db.query(User).get(sub.user_id)
-                if user and user.email:
-                    send_weather_alert(
-                        email=user.email,
-                        city=sub.city,
-                        old_temp=sub.last_temp,
-                        new_temp=new_temp,
-                        condition=condition
-                    )
-                    logger.info(f"✅ Уведомление отправлено для {sub.city}: {sub.last_temp}°C → {new_temp}°C")
+                if user:
+                    # Email уведомление
+                    if user.email:
+                        send_weather_alert(
+                            email=user.email,
+                            city=sub.city,
+                            old_temp=sub.last_temp,
+                            new_temp=new_temp,
+                            condition=condition
+                        )
+                        logger.info(f"✅ Email отправлен для {sub.city}: {sub.last_temp}°C → {new_temp}°C")
+
+                    # Telegram уведомление (если есть chat_id)
+                    if user.telegram_chat_id:
+                        try:
+                            # Запускаем асинхронную функцию в синхронной задаче
+                            asyncio.run(send_telegram_alert(
+                                chat_id=user.telegram_chat_id,
+                                city=sub.city,
+                                old_temp=sub.last_temp,
+                                new_temp=new_temp,
+                                condition=condition
+                            ))
+                            logger.info(f"✅ Telegram отправлен для {sub.city}")
+                        except Exception as e:
+                            logger.error(f"❌ Ошибка отправки Telegram: {e}")
         else:
             logger.info(f"Первое обновление погоды для {sub.city}")
 
