@@ -1,6 +1,7 @@
 from fastapi import FastAPI
-from app.routers import auth, subscriptions
+
 from app.database import init_db
+from app.routers import auth, subscriptions
 
 app = FastAPI(title="Weather Alert Service")
 

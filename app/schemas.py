@@ -1,19 +1,19 @@
-from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel, EmailStr
 
 
 # Auth schemas
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
-    telegram_chat_id: Optional[str] = None
+    telegram_chat_id: str | None = None
 
 
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
-    telegram_chat_id: Optional[str] = None
+    telegram_chat_id: str | None = None
     created_at: datetime
 
     class Config:
@@ -33,8 +33,8 @@ class SubscriptionCreate(BaseModel):
 class SubscriptionResponse(BaseModel):
     id: int
     city: str
-    last_temp: Optional[float] = None
-    last_condition: Optional[str] = None
+    last_temp: float | None = None
+    last_condition: str | None = None
     created_at: datetime
     is_active: bool
 

@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from typing import List
 
-from app.database import get_db
-from app.models import User, Subscription
-from app.schemas import SubscriptionCreate, SubscriptionResponse
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.auth import get_current_user
+from app.database import get_db
+from app.models import Subscription, User
+from app.schemas import SubscriptionCreate, SubscriptionResponse
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
@@ -41,7 +41,7 @@ async def create_subscription(
     return subscription
 
 
-@router.get("/", response_model=List[SubscriptionResponse])
+@router.get("/", response_model=list[SubscriptionResponse])
 async def get_subscriptions(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
