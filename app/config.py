@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5434/weather_db")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5434/weather_db"
+)
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6381")
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
