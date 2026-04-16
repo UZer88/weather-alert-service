@@ -108,3 +108,136 @@ async def test_login_nonexistent_user(client):
         }
     )
     assert response.status_code == 401
+
+
+# ========== Тесты для подписок ==========
+
+@pytest.mark.anyio
+async def test_create_subscription(client):
+    # Регистрация и логин
+    await client.post("/auth/register", json={
+        "email": "subuser@example.com",
+        "password": "subpass"
+    })
+    login_resp = await client.post(
+        "/auth/login",
+        data={"username": "subuser@example.com", "password": "subpass"}
+    )
+    token = login_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Создание подписки
+    response = await client.post(
+        "/subscriptions/",
+        json={"city": "Moscow"},
+        headers=headers
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["city"] == "Moscow"
+    assert "id" in data
+
+
+@pytest.mark.anyio
+async def test_create_duplicate_subscription(client):
+    # Регистрация и логин
+    await client.post("/auth/register", json={
+        "email": "dupsub@example.com",
+        "password": "duppass"
+    })
+    login_resp = await client.post(
+        "/auth/login",
+        data={"username": "dupsub@example.com", "password": "duppass"}
+    )
+    token = login_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Первое создание
+    await client.post("/subscriptions/", json={"city": "Moscow"}, headers=headers)
+    # Второе создание (дубликат)
+    response = await client.post("/subscriptions/", json={"city": "Moscow"}, headers=headers)
+    assert response.status_code == 400
+    assert "already exists" in response.text.lower()
+
+
+@pytest.mark.anyio
+async def test_get_subscriptions(client):
+    # Регистрация и логин
+    await client.post("/auth/register", json={
+        "email": "getsub@example.com",
+        "password": "getpass"
+    })
+    login_resp = await client.post(
+        "/auth/login",
+        data={"username": "getsub@example.com", "password": "getpass"}
+    )
+    token = login_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Создаём подписку
+    await client.post("/subscriptions/", json={"city": "London"}, headers=headers)
+
+    # Получаем список подписок
+    response = await client.get("/subscriptions/", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    assert data[0]["city"] == "London"
+
+
+@pytest.mark.anyio
+async def test_delete_subscription(client):
+    # Регистрация и логин
+    await client.post("/auth/register", json={
+        "email": "delsub@example.com",
+        "password": "delpass"
+    })
+    login_resp = await client.post(
+        "/auth/login",
+        data={"username": "delsub@example.com", "password": "delpass"}
+    )
+    token = login_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Создаём подписку
+    create_resp = await client.post("/subscriptions/", json={"city": "Berlin"}, headers=headers)
+    sub_id = create_resp.json()["id"]
+
+    # Удаляем подписку
+    delete_resp = await client.delete(f"/subscriptions/{sub_id}", headers=headers)
+    assert delete_resp.status_code == 200
+    assert delete_resp.json()["message"] == "Subscription deleted"
+
+    # Проверяем, что подписка действительно удалена (получаем список — её нет)
+    get_resp = await client.get("/subscriptions/", headers=headers)
+    assert len(get_resp.json()) == 0
+
+
+@pytest.mark.anyio
+async def test_delete_nonexistent_subscription(client):
+    # Регистрация и логин
+    await client.post("/auth/register", json={
+        "email": "del404@example.com",
+        "password": "del404"
+    })
+    login_resp = await client.post(
+        "/auth/login",
+        data={"username": "del404@example.com", "password": "del404"}
+    )
+    token = login_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Пытаемся удалить несуществующую подписку
+    response = await client.delete("/subscriptions/99999", headers=headers)
+    assert response.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_create_subscription_unauthorized(client):
+    # Попытка создать подписку без токена
+    response = await client.post(
+        "/subscriptions/",
+        json={"city": "Moscow"}
+    )
+    assert response.status_code == 401
